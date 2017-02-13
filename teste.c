@@ -21,6 +21,10 @@ int quantidades_usuarios;
 // vetor de usuários
 struct Usuario usuarios[TAMANHO_VETOR];
 
+// nome do arquivo binario que armazena as variaveis:
+// quantidade_usuarios e usuarios
+char nome_arquivo[] = "/Users/sidneynogueira/Documents/sidney_safe/ufrpe/2016.1/ipi/usuarios.bin";
+
 // esta variavel indica se informacoes de debug devem ser impressas
 // se valor for 1 as informacoes de debug sao impressas
 // se for igual a 0 as informacoes nao sao impressas
@@ -40,6 +44,74 @@ void imprimeInformacoesDebug(){
 // procedimento auxiliar que imprime mensagem de erro
 void mensagemErro(char *nome_arquivo){
     printf("Erro: nao foi possivel abrir arquivo %s", nome_arquivo);
+}
+
+// grava no arquivo o valor das variáveis: TAMANHO_VETOR, quantidade_usuarios e usuarios
+void gravaVetorUsuariosArquivo(){
+    
+    //abre arquivo para escrita
+    FILE *arquivo = fopen(nome_arquivo, "wb");
+    
+    if(arquivo == NULL){
+        mensagemErro(nome_arquivo);
+        exit(1);
+    }else{
+        
+        int c;
+        
+        // grava quantidade_usuarios
+        c = (int) fwrite(&quantidades_usuarios, sizeof(int), 1, arquivo);
+        
+        if(c < 1){
+            mensagemErro(nome_arquivo);
+            fclose(arquivo);
+            return;
+        }
+        
+        // grava usuarios
+        c = (int) fwrite(usuarios, sizeof(struct Usuario), TAMANHO_VETOR, arquivo);
+        
+        if(c < TAMANHO_VETOR){
+            mensagemErro(nome_arquivo);
+            fclose(arquivo);
+            return;
+        }
+        
+        fclose(arquivo);
+    }
+}
+
+// recupera do arquivo o valor das variaveis: TAMANHO_VETOR, quantidade_usuarios e usuarios
+void leVetorUsuariosDoArquivo(){
+    
+    // abre o arquivo para leitura
+    FILE *arquivo = fopen(nome_arquivo, "rb");
+    
+    if(arquivo != NULL){ // arquivo nao encontrado
+        
+        int c;
+        
+        // recupera o valor para quantidade_usuarios
+        c = (int)fread(&quantidades_usuarios, sizeof(int), 1, arquivo);
+        
+        if(c < 1){
+            mensagemErro(nome_arquivo);
+            fclose(arquivo);
+            return;
+        }
+        
+        // recupera o valor de usuarios
+        c = (int)fread(usuarios, sizeof(struct Usuario), TAMANHO_VETOR, arquivo);
+        
+        if(c < TAMANHO_VETOR){
+            mensagemErro(nome_arquivo);
+            fclose(arquivo);
+            return;
+        }
+        
+        fclose(arquivo);
+    }
+    
 }
 
 // lista os usuarios do vetor
@@ -237,6 +309,7 @@ void menu(){
                 break;
                 
             case 5:
+                gravaVetorUsuariosArquivo();
                 imprimeInformacoesDebug();
                 sair = 1;
                 break;
@@ -258,7 +331,7 @@ int main(){
     
     imprimeInformacoesDebug();
     
-    insereUsuariosVetor();
+    leVetorUsuariosDoArquivo();
     
     imprimeInformacoesDebug();
     
