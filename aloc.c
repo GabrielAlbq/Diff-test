@@ -9,8 +9,8 @@ struct Usuario{
 };
 
 // quantidade de posicoes do vetor de usuarios
-// esta variavel e
-#define TAMANHO_VETOR 10
+// esta variavel sera atualizada toda vez que o vetor mudar de tamanho
+int TAMANHO_VETOR;
 
 // quantidade de usuarios cadastrados no vetor
 // este valor sera sempre menor do que TAMANHO_VETOR
@@ -18,12 +18,15 @@ struct Usuario{
 // e decrementada quando um usuario e removido
 int quantidades_usuarios;
 
-// vetor de usuários
-struct Usuario usuarios[TAMANHO_VETOR];
+// vetor de usuários cujo tamanho e igual a TAMANHO_VETOR
+// este vetor e alocado pela primeira vez na funcao leVetorUsuariosDoArquivo
+// realocado na funcao insereNovoUsuario para um tamanho maior
+// realocado na funcao removeUsuarioVetor para um tamanho menor
+struct Usuario *usuarios;
 
 // nome do arquivo binario que armazena as variaveis:
-// quantidade_usuarios e usuarios
-char nome_arquivo[] = "/Users/sidneynogueira/Documents/sidney_safe/ufrpe/2016.1/ipi/usuarios.bin";
+// TAMANHO_VETOR, quantidade_usuarios e usuarios
+char nome_arquivo[] = "/Users/sidneynogueira/Documents/sidney_safe/ufrpe/2015.2/ipi/usuarios.bin";
 
 // esta variavel indica se informacoes de debug devem ser impressas
 // se valor for 1 as informacoes de debug sao impressas
@@ -57,7 +60,14 @@ void gravaVetorUsuariosArquivo(){
         exit(1);
     }else{
         
-        int c;
+        //grava TAMANHO_VETOR
+        int c = (int) fwrite(&TAMANHO_VETOR, sizeof(int), 1, arquivo);
+        
+        if(c < 1){
+            mensagemErro(nome_arquivo);
+            fclose(arquivo);
+            return;
+        }
         
         // grava quantidade_usuarios
         c = (int) fwrite(&quantidades_usuarios, sizeof(int), 1, arquivo);
@@ -87,9 +97,23 @@ void leVetorUsuariosDoArquivo(){
     // abre o arquivo para leitura
     FILE *arquivo = fopen(nome_arquivo, "rb");
     
-    if(arquivo != NULL){ // arquivo nao encontrado
+    if(arquivo == NULL){ // arquivo nao encontrado
+        mensagemErro(nome_arquivo);
+        // inicializa as variaveis globais de forma que o vetor
+        // tenha 10 posicoes e nenhum usuario cadastrado
+        TAMANHO_VETOR = 10;
+        quantidades_usuarios = 0;
+        usuarios = malloc(TAMANHO_VETOR*sizeof(struct Usuario));
+    }else{ // arquivo encontrado, inicializa variaveis com valores lidos do arquivo
         
-        int c;
+        // recupera o valor para TAMANHO_VETOR
+        int c = (int)fread(&TAMANHO_VETOR, sizeof(int), 1, arquivo);
+        
+        if(c < 1){
+            mensagemErro(nome_arquivo);
+            fclose(arquivo);
+            return;
+        }
         
         // recupera o valor para quantidade_usuarios
         c = (int)fread(&quantidades_usuarios, sizeof(int), 1, arquivo);
@@ -99,6 +123,9 @@ void leVetorUsuariosDoArquivo(){
             fclose(arquivo);
             return;
         }
+        
+        // aloca o espaco para o vetor antes de chamar fread
+        usuarios = malloc(TAMANHO_VETOR*sizeof(struct Usuario));
         
         // recupera o valor de usuarios
         c = (int)fread(usuarios, sizeof(struct Usuario), TAMANHO_VETOR, arquivo);
@@ -172,8 +199,11 @@ void insereNovoUsuario(struct Usuario u){
     // se o vetor esta cheio
     if(quantidades_usuarios == TAMANHO_VETOR){
         
-        printf("Nao e possivel inserir mais usuarios, capacidade maxima atingida");
-        return;
+        // aumenta a capacidade do vetor em 50%
+        TAMANHO_VETOR *= 1.5;
+        
+        // realoca o vetor para o novo tamanho
+        usuarios = realloc(usuarios, TAMANHO_VETOR*sizeof(struct Usuario));
     }
     
     // guarda o usuario na ultima posicao livre
@@ -218,6 +248,12 @@ int removeUsuarioVetor(char *nome_usuario){
     for (i=0; i < quantidades_usuarios; i++) {
         if(strcmp(usuarios[i].nome, nome_usuario) == 0){
             reorganizaVetor(i);
+            //se quantidade de usuario for menor do que um terco do tamanho
+            if(quantidades_usuarios < TAMANHO_VETOR/3){
+                // reduz o tamanho do vetor em 50%
+                TAMANHO_VETOR = TAMANHO_VETOR*0.5;
+                usuarios = realloc(usuarios, TAMANHO_VETOR*sizeof(struct Usuario));
+            }
             quantidades_usuarios--;
             encontrou = 1;
             // quebra o laco, isto economiza tempo evitando
@@ -340,7 +376,7 @@ int main(){
     printf("\n#########################################################\n");
     printf("Obrigado por ter usado o nosso sistema. Ate breve!\n");
     printf("#########################################################\n");
-    
+
     return 0;
     
 }
